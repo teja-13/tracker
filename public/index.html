@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCSR Placement Tracker</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="brand-text">
+            <h2>UCSR Placement</h2>
+            <span>Tracker</span>
+          </div>
+        </div>
+        <button class="mobile-close-btn" id="mobile-close-btn" aria-label="Close Menu">✕</button>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-view="beyond">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span>Beyond Drive</span>
+        </button>
+
+        <button class="nav-item" data-view="upcoming">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Upcoming Drives</span>
+        </button>
+
+        <button class="nav-item" data-view="applied">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <span>Applied</span>
+        </button>
+
+        <button class="nav-item" data-view="past">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>Past Drives</span>
+        </button>
+
+        <button class="nav-item" data-view="all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          <span>All Drives</span>
+        </button>
+
+        <button class="nav-item" data-view="resume">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>Resume</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open Menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="view-header">
+            <h1 id="view-title">UCSR Placement Tracker</h1>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <button class="btn btn-primary" id="open-add-modal-btn">
+            + Add Drive
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Container for Sections -->
+      <div class="content-container">
+
+        <!-- SECTION 1: DASHBOARD -->
+        <section class="page-section" id="section-dashboard">
+          <div class="section-header">
+            <h2>Dashboard Summary</h2>
+          </div>
+          <div id="dashboard-content">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- SECTION 2: BEYOND DRIVE -->
+        <section class="page-section" id="section-beyond" style="display: none;">
+          <div class="section-header">
+            <h2>Beyond Drive</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-beyond">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Company Name</th>
+                  <th>Drive Date</th>
+                  <th>Role</th>
+                  <th>Category</th>
+                  <th>Countdown</th>
+                  <th>Status</th>
+                  <th>Exam Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-beyond">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-beyond" style="display: none;">
+            No Beyond Drive placement records.
+          </div>
+        </section>
+
+        <!-- SECTION 3: UPCOMING DRIVES -->
+        <section class="page-section" id="section-upcoming" style="display: none;">
+          <div class="section-header">
+            <h2>Upcoming Drives</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-upcoming">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Company Name</th>
+                  <th>Drive Date</th>
+                  <th>Role</th>
+                  <th>Category</th>
+                  <th>Countdown</th>
+                  <th>Status</th>
+                  <th>Exam Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-upcoming">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-upcoming" style="display: none;">
+            No upcoming placement drives.
+          </div>
+        </section>
+
+        <!-- SECTION 4: APPLIED -->
+        <section class="page-section" id="section-applied" style="display: none;">
+          <div class="section-header">
+            <h2>Applied Drives</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-applied">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Company Name</th>
+                  <th>Drive Date</th>
+                  <th>Role</th>
+                  <th>Category</th>
+                  <th>Countdown</th>
+                  <th>Status</th>
+                  <th>Exam Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-applied">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-applied" style="display: none;">
+            No applied placement drives.
+          </div>
+        </section>
+
+        <!-- SECTION 5: PAST DRIVES -->
+        <section class="page-section" id="section-past" style="display: none;">
+          <div class="section-header">
+            <h2>Past Drives</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-past">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Company Name</th>
+                  <th>Drive Date</th>
+                  <th>Role</th>
+                  <th>Category</th>
+                  <th>Countdown</th>
+                  <th>Status</th>
+                  <th>Exam Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-past">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-past" style="display: none;">
+            No past placement drives.
+          </div>
+        </section>
+
+        <!-- SECTION 6: ALL DRIVES -->
+        <section class="page-section" id="section-all" style="display: none;">
+          <div class="section-header">
+            <h2>All Drives</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-all">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th class="sortable" data-sort="companyName">Company Name <span class="sort-icon">↕</span></th>
+                  <th class="sortable" data-sort="driveDate">Drive Date <span class="sort-icon">↕</span></th>
+                  <th>Role</th>
+                  <th class="sortable" data-sort="driveType">Category <span class="sort-icon">↕</span></th>
+                  <th>Countdown</th>
+                  <th class="sortable" data-sort="status">Status <span class="sort-icon">↕</span></th>
+                  <th class="sortable" data-sort="examStatus">Exam Status <span class="sort-icon">↕</span></th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-all">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-all" style="display: none;">
+            No placement drives added yet.
+          </div>
+        </section>
+
+        <!-- SECTION 7: RESUME -->
+        <section class="page-section" id="section-resume" style="display: none;">
+          <div class="section-header">
+            <h2>Resume Section</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="placement-table" id="table-resume">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Company Name</th>
+                  <th>Resume Link</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-resume">
+                <!-- Rows generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state-text" id="empty-resume" style="display: none;">
+            No placement companies added yet.
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Add / Edit Placement Drive Modal -->
+  <div class="modal-backdrop" id="drive-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">+ Add Placement Drive</h3>
+        <button class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">✕</button>
+      </div>
+
+      <form id="drive-form">
+        <input type="hidden" id="drive-id" value="">
+
+        <div class="form-group">
+          <label for="company-name" class="form-label required">Company Name *</label>
+          <input type="text" id="company-name" class="form-input" placeholder="e.g. ABC Technologies" required>
+        </div>
+
+        <div class="form-group">
+          <label for="drive-date" class="form-label">Drive Date <span class="optional-tag">(Optional)</span></label>
+          <input type="date" id="drive-date" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="company-role" class="form-label">Role <span class="optional-tag">(Optional)</span></label>
+          <input type="text" id="company-role" class="form-input" placeholder="e.g. Developer, SDE">
+        </div>
+
+        <div class="form-group">
+          <label for="drive-type" class="form-label">Category / Type</label>
+          <select id="drive-type" class="form-select">
+            <option value="Campus Drive">Campus Drive</option>
+            <option value="Beyond Drive">Beyond Drive</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="group-status" style="display: none;">
+          <label for="drive-status" class="form-label">Status</label>
+          <select id="drive-status" class="form-select">
+            <option value="Upcoming">Upcoming</option>
+            <option value="Applied">Applied</option>
+            <option value="Shortlisted">Shortlisted</option>
+            <option value="Test Completed">Test Completed</option>
+            <option value="Interview">Interview</option>
+            <option value="Selected">Selected</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="group-exam-status" style="display: none;">
+          <label for="exam-status" class="form-label">Exam Status</label>
+          <select id="exam-status" class="form-select">
+            <option value="Not Completed">Not Completed</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-submit-btn">
+            <span id="modal-submit-text">Save Drive</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dedicated Resume Link Upload Modal -->
+  <div class="modal-backdrop" id="resume-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Upload / Edit Resume Link</h3>
+        <button class="modal-close-btn" id="resume-modal-close-btn" aria-label="Close modal">✕</button>
+      </div>
+
+      <form id="resume-form">
+        <input type="hidden" id="resume-drive-id" value="">
+
+        <div class="form-group">
+          <label class="form-label">Company Name</label>
+          <input type="text" id="resume-company-name" class="form-input" readonly disabled style="background-color: #f1f5f9;">
+        </div>
+
+        <div class="form-group">
+          <label for="resume-link-input" class="form-label">Resume Link <span class="optional-tag">(Optional)</span></label>
+          <input type="url" id="resume-link-input" class="form-input" placeholder="e.g. https://drive.google.com/your-resume-link">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="resume-modal-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Resume Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-backdrop" id="delete-modal" style="display: none;">
+    <div class="modal-card delete-modal-card">
+      <h3>Delete Placement Drive</h3>
+      <p id="delete-warning-text">Are you sure you want to delete this placement drive?</p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="delete-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="delete-confirm-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Main Application JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+</html>
