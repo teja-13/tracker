@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sectionDashboard: document.getElementById('section-dashboard'),
     sectionBeyond: document.getElementById('section-beyond'),
     sectionUpcoming: document.getElementById('section-upcoming'),
-    sectionApplied: document.getElementById('section-applied'),
     sectionPast: document.getElementById('section-past'),
     sectionAll: document.getElementById('section-all'),
     sectionResume: document.getElementById('section-resume'),
@@ -40,8 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyBeyond: document.getElementById('empty-beyond'),
     tbodyUpcoming: document.getElementById('tbody-upcoming'),
     emptyUpcoming: document.getElementById('empty-upcoming'),
-    tbodyApplied: document.getElementById('tbody-applied'),
-    emptyApplied: document.getElementById('empty-applied'),
     tbodyPast: document.getElementById('tbody-past'),
     emptyPast: document.getElementById('empty-past'),
     tbodyAll: document.getElementById('tbody-all'),
@@ -87,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Constant definitions
-  const APPLIED_STATUS_LIST = ['Applied', 'Shortlisted', 'Test Completed', 'Interview', 'Selected', 'Rejected'];
   const STATUS_OPTIONS = ['Upcoming', 'Applied', 'Shortlisted', 'Test Completed', 'Interview', 'Selected', 'Rejected', 'Completed'];
   const EXAM_STATUS_OPTIONS = ['Not Completed', 'Completed'];
 
@@ -215,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.sectionDashboard.style.display = 'none';
     elements.sectionBeyond.style.display = 'none';
     elements.sectionUpcoming.style.display = 'none';
-    elements.sectionApplied.style.display = 'none';
     elements.sectionPast.style.display = 'none';
     elements.sectionAll.style.display = 'none';
     elements.sectionResume.style.display = 'none';
@@ -224,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewName === 'dashboard') elements.sectionDashboard.style.display = 'block';
     else if (viewName === 'beyond') elements.sectionBeyond.style.display = 'block';
     else if (viewName === 'upcoming') elements.sectionUpcoming.style.display = 'block';
-    else if (viewName === 'applied') elements.sectionApplied.style.display = 'block';
     else if (viewName === 'past') elements.sectionPast.style.display = 'block';
     else if (viewName === 'all') elements.sectionAll.style.display = 'block';
     else if (viewName === 'resume') elements.sectionResume.style.display = 'block';
@@ -238,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.currentView === 'dashboard') renderDashboard(today);
     else if (state.currentView === 'beyond') renderBeyondDrives();
     else if (state.currentView === 'upcoming') renderUpcomingDrives(today);
-    else if (state.currentView === 'applied') renderAppliedDrives();
     else if (state.currentView === 'past') renderPastDrives(today);
     else if (state.currentView === 'all') renderAllDrives();
     else if (state.currentView === 'resume') renderResumeView();
@@ -254,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let campusCount = 0;
     let beyondCount = 0;
     let upcomingCount = 0;
-    let appliedCount = 0;
     let examCompletedCount = 0;
     let interviewCount = 0;
     let selectedCount = 0;
@@ -272,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isPast) upcomingCount++;
       else pastCount++;
 
-      if (APPLIED_STATUS_LIST.includes(d.status)) appliedCount++;
       if (d.examStatus === 'Completed') examCompletedCount++;
       if (d.status === 'Interview') interviewCount++;
       if (d.status === 'Selected') selectedCount++;
@@ -286,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <tr><td class="stat-name">Campus Drives</td><td class="stat-count">${campusCount}</td></tr>
           <tr><td class="stat-name">Beyond Drives</td><td class="stat-count">${beyondCount}</td></tr>
           <tr><td class="stat-name">Upcoming Drives</td><td class="stat-count">${upcomingCount}</td></tr>
-          <tr><td class="stat-name">Applied</td><td class="stat-count">${appliedCount}</td></tr>
           <tr><td class="stat-name">Exam Completed</td><td class="stat-count">${examCompletedCount}</td></tr>
           <tr><td class="stat-name">Interviews</td><td class="stat-count">${interviewCount}</td></tr>
           <tr><td class="stat-name">Selected</td><td class="stat-count">${selectedCount}</td></tr>
@@ -333,20 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 4. Applied Drives View
-  function renderAppliedDrives() {
-    const appliedDrives = state.drives.filter(d => APPLIED_STATUS_LIST.includes(d.status));
-
-    if (appliedDrives.length === 0) {
-      elements.tbodyApplied.innerHTML = '';
-      elements.emptyApplied.style.display = 'block';
-    } else {
-      elements.emptyApplied.style.display = 'none';
-      renderTableRows(elements.tbodyApplied, appliedDrives);
-    }
-  }
-
-  // 5. Past Drives View
+  // 4. Past Drives View
   function renderPastDrives(today) {
     const pastDrives = state.drives.filter(d => {
       if (!d.driveDate) return false;
@@ -365,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 6. All Drives View
+  // 5. All Drives View
   function renderAllDrives() {
     let allDrives = [...state.drives];
 
@@ -395,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 7. Resume Section View (ONLY Company Name & Resume Link)
+  // 6. Resume Section View (ONLY Company Name & Resume Link)
   function renderResumeView() {
     if (state.drives.length === 0) {
       elements.tbodyResume.innerHTML = '';
