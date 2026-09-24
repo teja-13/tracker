@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     deletingDriveId: null,
     editingResumeDriveId: null,
     isLoading: true,
+    hasLoadedOnce: false,
     loadError: null,
     retryCount: 0,
     isFetching: false
@@ -158,20 +159,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('retry-load-btn');
     if (btn) {
       btn.addEventListener('click', () => {
-        loadDrives();
+        loadDrives(false);
       });
     }
   }
 
-  // --- API Calls with Retry & State Handling ---
+  // --- API Calls with Silent Background Sync & Optimistic Updates ---
 
-  async function loadDrives() {
+  /**
+   * Load drives from backend.
+   * @param {boolean} silent - If true, updates data in background without triggering full-screen loading spinner.
+   */
+  async function loadDrives(silent = false) {
     if (state.isFetching) return;
     state.isFetching = true;
-    state.isLoading = true;
+
+    // Show full loading spinner ONLY on initial load before any data is available
+    if (!state.hasLoadedOnce && !silent) {
+      state.isLoading = true;
+      renderCurrentView();
+    }
+
     state.loadError = null;
-    state.retryCount = 0;
-    renderCurrentView();
 
     const maxRetries = 3;
     let attempt = 0;
@@ -181,8 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         if (attempt > 0) {
           state.retryCount = attempt;
-          renderCurrentView();
-          // Exponential backoff delay (1s, 2s, 4s)
+          if (!state.hasLoadedOnce) renderCurrentView();
           const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
           await new Promise(res => setTimeout(res, delayMs));
         }
@@ -196,10 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         state.drives = Array.isArray(data) ? data : [];
         state.isLoading = false;
+        state.hasLoadedOnce = true;
         state.loadError = null;
         state.retryCount = 0;
         state.isFetching = false;
-        renderCurrentView();
+        renderCurrentView(); // Smooth update without flashing loading spinner!
         success = true;
         return;
       } catch (err) {
@@ -207,11 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn(`[MongoDB Atlas Fetch Attempt ${attempt} failed]:`, err.message);
         if (attempt > maxRetries) {
           state.isLoading = false;
-          state.loadError = err.message || 'Failed to load placement drives from MongoDB Atlas';
+          if (!state.hasLoadedOnce && state.drives.length === 0) {
+            state.loadError = err.message || 'Failed to load placement drives from MongoDB Atlas';
+          }
           state.retryCount = 0;
           state.isFetching = false;
           renderCurrentView();
-          showToast('Database temporarily unavailable. Click Retry.', 'error');
+          if (!silent) showToast('Database sync issue. Click Retry if needed.', 'error');
         }
       }
     }
@@ -230,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       showToast(`Drive for "${data.companyName}" added`, 'success');
       closeModal();
-      await loadDrives();
+      await loadDrives(true); // Silent update without loading flash
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -238,6 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function updateDrive(id, data) {
     try {
+      // Optimistic update: Update local state immediately so UI responds instantly with 0ms lag
+      const driveIndex = state.drives.findIndex(d => d._id === id);
+      if (driveIndex !== -1) {
+        state.drives[driveIndex] = { ...state.drives[driveIndex], ...data };
+        renderCurrentView(); // Instant UI refresh without spinner
+      }
+
       const res = await fetch(`/api/drives/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -250,23 +268,29 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Placement drive updated', 'success');
       closeModal();
       closeResumeModal();
-      await loadDrives();
+      await loadDrives(true); // Silent background sync
     } catch (err) {
       showToast(err.message, 'error');
+      await loadDrives(true); // Revert/sync on error
     }
   }
 
   async function deleteDrive(id) {
     try {
+      // Optimistic delete: remove row immediately from UI
+      state.drives = state.drives.filter(d => d._id !== id);
+      renderCurrentView();
+
       const res = await fetch(`/api/drives/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete drive');
       showToast('Placement drive deleted', 'success');
       closeDeleteModal();
-      await loadDrives();
+      await loadDrives(true); // Silent background sync
     } catch (err) {
       showToast(err.message, 'error');
+      await loadDrives(true);
     }
   }
 
@@ -312,12 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1. Dashboard View
   function renderDashboard(today) {
-    if (state.isLoading) {
+    if (state.isLoading && !state.hasLoadedOnce) {
       elements.dashboardContent.innerHTML = renderLoadingUI(state.retryCount);
       return;
     }
 
-    if (state.loadError) {
+    if (state.loadError && !state.hasLoadedOnce) {
       elements.dashboardContent.innerHTML = renderErrorUI(state.loadError);
       attachRetryListener();
       return;
@@ -363,13 +387,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Campus Drive View (Shows ALL Campus Drives including expired ones)
   function renderCampusDrives() {
-    if (state.isLoading) {
+    if (state.isLoading && !state.hasLoadedOnce) {
       elements.emptyCampus.style.display = 'none';
       elements.tbodyCampus.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
       return;
     }
 
-    if (state.loadError) {
+    if (state.loadError && !state.hasLoadedOnce) {
       elements.emptyCampus.style.display = 'none';
       elements.tbodyCampus.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
       attachRetryListener();
@@ -390,13 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. Beyond Drives View
   function renderBeyondDrives() {
-    if (state.isLoading) {
+    if (state.isLoading && !state.hasLoadedOnce) {
       elements.emptyBeyond.style.display = 'none';
       elements.tbodyBeyond.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
       return;
     }
 
-    if (state.loadError) {
+    if (state.loadError && !state.hasLoadedOnce) {
       elements.emptyBeyond.style.display = 'none';
       elements.tbodyBeyond.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
       attachRetryListener();
@@ -416,13 +440,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. All Drives View
   function renderAllDrives() {
-    if (state.isLoading) {
+    if (state.isLoading && !state.hasLoadedOnce) {
       elements.emptyAll.style.display = 'none';
       elements.tbodyAll.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
       return;
     }
 
-    if (state.loadError) {
+    if (state.loadError && !state.hasLoadedOnce) {
       elements.emptyAll.style.display = 'none';
       elements.tbodyAll.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
       attachRetryListener();
@@ -459,13 +483,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Resume Section View (ONLY Company Name & Resume Link)
   function renderResumeView() {
-    if (state.isLoading) {
+    if (state.isLoading && !state.hasLoadedOnce) {
       elements.emptyResume.style.display = 'none';
       elements.tbodyResume.innerHTML = `<tr><td colspan="4">${renderLoadingUI(state.retryCount)}</td></tr>`;
       return;
     }
 
-    if (state.loadError) {
+    if (state.loadError && !state.hasLoadedOnce) {
       elements.emptyResume.style.display = 'none';
       elements.tbodyResume.innerHTML = `<tr><td colspan="4">${renderErrorUI(state.loadError)}</td></tr>`;
       attachRetryListener();
@@ -793,5 +817,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupEventListeners();
   switchSection('dashboard');
-  loadDrives();
+  loadDrives(false); // Initial load showing spinner
 });
