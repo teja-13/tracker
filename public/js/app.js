@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentView: 'dashboard',
     sortKey: 'driveDate',
     sortOrder: 'asc',
+    searchQuery: '',
     editingDriveId: null,
     deletingDriveId: null,
     editingResumeDriveId: null,
@@ -27,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileCloseBtn: document.getElementById('mobile-close-btn'),
     navItems: document.querySelectorAll('.nav-item'),
     viewTitle: document.getElementById('view-title'),
+
+    // Search Input
+    searchAllInput: document.getElementById('search-all-input'),
 
     // Sections
     sectionDashboard: document.getElementById('section-dashboard'),
@@ -455,6 +459,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allDrives = [...state.drives];
 
+    // Filter by Search Query
+    const query = state.searchQuery.trim().toLowerCase();
+    if (query) {
+      allDrives = allDrives.filter(d => {
+        const company = (d.companyName || '').toLowerCase();
+        const role = (d.role || '').toLowerCase();
+        const category = (d.driveType || 'Campus Drive').toLowerCase();
+        const status = (d.status || '').toLowerCase();
+        const examStatus = (d.examStatus || '').toLowerCase();
+
+        return company.includes(query) ||
+               role.includes(query) ||
+               category.includes(query) ||
+               status.includes(query) ||
+               examStatus.includes(query);
+      });
+    }
+
     allDrives.sort((a, b) => {
       let valA = a[state.sortKey] || '';
       let valB = b[state.sortKey] || '';
@@ -474,6 +496,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (allDrives.length === 0) {
       elements.tbodyAll.innerHTML = '';
+      if (query) {
+        elements.emptyAll.textContent = `No placement drives found matching "${escapeHTML(state.searchQuery)}".`;
+      } else {
+        elements.emptyAll.textContent = 'No placement drives added yet.';
+      }
       elements.emptyAll.style.display = 'block';
     } else {
       elements.emptyAll.style.display = 'none';
@@ -807,6 +834,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAllDrives();
       });
     });
+
+    if (elements.searchAllInput) {
+      elements.searchAllInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderAllDrives();
+      });
+    }
 
     window.addEventListener('click', (e) => {
       if (e.target === elements.driveModal) closeModal();
