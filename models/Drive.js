@@ -53,4 +53,11 @@ const driveSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Indexes for faster query performance in MongoDB Atlas
+driveSchema.index({ createdAt: -1 });
+driveSchema.index({ driveDate: 1 });
+driveSchema.index({ driveType: 1 });
+driveSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Drive', driveSchema);
+

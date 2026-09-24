@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     sortOrder: 'asc',
     editingDriveId: null,
     deletingDriveId: null,
-    editingResumeDriveId: null
+    editingResumeDriveId: null,
+    isLoading: true,
+    loadError: null,
+    retryCount: 0,
+    isFetching: false
   };
 
   // DOM Elements
@@ -25,9 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sections
     sectionDashboard: document.getElementById('section-dashboard'),
+    sectionCampus: document.getElementById('section-campus'),
     sectionBeyond: document.getElementById('section-beyond'),
-    sectionUpcoming: document.getElementById('section-upcoming'),
-    sectionPast: document.getElementById('section-past'),
     sectionAll: document.getElementById('section-all'),
     sectionResume: document.getElementById('section-resume'),
 
@@ -35,12 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dashboardContent: document.getElementById('dashboard-content'),
 
     // Table Bodies & Empty States
+    tbodyCampus: document.getElementById('tbody-campus'),
+    emptyCampus: document.getElementById('empty-campus'),
     tbodyBeyond: document.getElementById('tbody-beyond'),
     emptyBeyond: document.getElementById('empty-beyond'),
-    tbodyUpcoming: document.getElementById('tbody-upcoming'),
-    emptyUpcoming: document.getElementById('empty-upcoming'),
-    tbodyPast: document.getElementById('tbody-past'),
-    emptyPast: document.getElementById('empty-past'),
     tbodyAll: document.getElementById('tbody-all'),
     emptyAll: document.getElementById('empty-all'),
     tbodyResume: document.getElementById('tbody-resume'),
@@ -127,17 +128,92 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- API Calls ---
+  // --- Helper Functions: Loading & Error Renderers ---
+
+  function renderLoadingUI(retryCount = 0) {
+    const retryMsg = retryCount > 0
+      ? `<div class="loading-retry-text">Connecting to MongoDB Atlas... (Attempt ${retryCount} of 3)</div>`
+      : '';
+    return `
+      <div class="loading-state-container">
+        <div class="spinner"></div>
+        <div class="loading-main-text">Loading placement drives...</div>
+        ${retryMsg}
+      </div>
+    `;
+  }
+
+  function renderErrorUI(errorMsg) {
+    return `
+      <div class="error-state-container">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Unable to connect to MongoDB Atlas</div>
+        <div class="error-msg">${escapeHTML(errorMsg)}</div>
+        <button class="btn btn-primary retry-btn" id="retry-load-btn">🔄 Retry Loading</button>
+      </div>
+    `;
+  }
+
+  function attachRetryListener() {
+    const btn = document.getElementById('retry-load-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        loadDrives();
+      });
+    }
+  }
+
+  // --- API Calls with Retry & State Handling ---
 
   async function loadDrives() {
-    try {
-      const res = await fetch('/api/drives');
-      if (!res.ok) throw new Error('Failed to load placement drives');
-      state.drives = await res.json();
-      renderCurrentView();
-    } catch (err) {
-      showToast('Error connecting to backend server', 'error');
-      console.error(err);
+    if (state.isFetching) return;
+    state.isFetching = true;
+    state.isLoading = true;
+    state.loadError = null;
+    state.retryCount = 0;
+    renderCurrentView();
+
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
+
+    while (attempt <= maxRetries && !success) {
+      try {
+        if (attempt > 0) {
+          state.retryCount = attempt;
+          renderCurrentView();
+          // Exponential backoff delay (1s, 2s, 4s)
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+          await new Promise(res => setTimeout(res, delayMs));
+        }
+
+        const res = await fetch('/api/drives');
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `HTTP ${res.status}: Failed to load placement drives`);
+        }
+
+        const data = await res.json();
+        state.drives = Array.isArray(data) ? data : [];
+        state.isLoading = false;
+        state.loadError = null;
+        state.retryCount = 0;
+        state.isFetching = false;
+        renderCurrentView();
+        success = true;
+        return;
+      } catch (err) {
+        attempt++;
+        console.warn(`[MongoDB Atlas Fetch Attempt ${attempt} failed]:`, err.message);
+        if (attempt > maxRetries) {
+          state.isLoading = false;
+          state.loadError = err.message || 'Failed to load placement drives from MongoDB Atlas';
+          state.retryCount = 0;
+          state.isFetching = false;
+          renderCurrentView();
+          showToast('Database temporarily unavailable. Click Retry.', 'error');
+        }
+      }
     }
   }
 
@@ -209,17 +285,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hide all sections
     elements.sectionDashboard.style.display = 'none';
+    elements.sectionCampus.style.display = 'none';
     elements.sectionBeyond.style.display = 'none';
-    elements.sectionUpcoming.style.display = 'none';
-    elements.sectionPast.style.display = 'none';
     elements.sectionAll.style.display = 'none';
     elements.sectionResume.style.display = 'none';
 
     // Show ONLY active section
     if (viewName === 'dashboard') elements.sectionDashboard.style.display = 'block';
+    else if (viewName === 'campus') elements.sectionCampus.style.display = 'block';
     else if (viewName === 'beyond') elements.sectionBeyond.style.display = 'block';
-    else if (viewName === 'upcoming') elements.sectionUpcoming.style.display = 'block';
-    else if (viewName === 'past') elements.sectionPast.style.display = 'block';
     else if (viewName === 'all') elements.sectionAll.style.display = 'block';
     else if (viewName === 'resume') elements.sectionResume.style.display = 'block';
 
@@ -230,15 +304,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const today = getToday();
 
     if (state.currentView === 'dashboard') renderDashboard(today);
+    else if (state.currentView === 'campus') renderCampusDrives();
     else if (state.currentView === 'beyond') renderBeyondDrives();
-    else if (state.currentView === 'upcoming') renderUpcomingDrives(today);
-    else if (state.currentView === 'past') renderPastDrives(today);
     else if (state.currentView === 'all') renderAllDrives();
     else if (state.currentView === 'resume') renderResumeView();
   }
 
   // 1. Dashboard View
   function renderDashboard(today) {
+    if (state.isLoading) {
+      elements.dashboardContent.innerHTML = renderLoadingUI(state.retryCount);
+      return;
+    }
+
+    if (state.loadError) {
+      elements.dashboardContent.innerHTML = renderErrorUI(state.loadError);
+      attachRetryListener();
+      return;
+    }
+
     if (state.drives.length === 0) {
       elements.dashboardContent.innerHTML = `<div class="empty-dashboard-msg">No placement drives added yet.</div>`;
       return;
@@ -246,23 +330,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let campusCount = 0;
     let beyondCount = 0;
-    let upcomingCount = 0;
     let examCompletedCount = 0;
     let interviewCount = 0;
     let selectedCount = 0;
     let rejectedCount = 0;
-    let pastCount = 0;
 
     state.drives.forEach(d => {
       const type = d.driveType || 'Campus Drive';
       if (type === 'Beyond Drive') beyondCount++;
       else campusCount++;
-
-      const driveDay = getStartOfDay(d.driveDate);
-      const isPast = driveDay && driveDay.getTime() < today.getTime();
-
-      if (!isPast) upcomingCount++;
-      else pastCount++;
 
       if (d.examStatus === 'Completed') examCompletedCount++;
       if (d.status === 'Interview') interviewCount++;
@@ -276,19 +352,57 @@ document.addEventListener('DOMContentLoaded', () => {
           <tr><td class="stat-name">Total Drives</td><td class="stat-count">${state.drives.length}</td></tr>
           <tr><td class="stat-name">Campus Drives</td><td class="stat-count">${campusCount}</td></tr>
           <tr><td class="stat-name">Beyond Drives</td><td class="stat-count">${beyondCount}</td></tr>
-          <tr><td class="stat-name">Upcoming Drives</td><td class="stat-count">${upcomingCount}</td></tr>
           <tr><td class="stat-name">Exam Completed</td><td class="stat-count">${examCompletedCount}</td></tr>
           <tr><td class="stat-name">Interviews</td><td class="stat-count">${interviewCount}</td></tr>
           <tr><td class="stat-name">Selected</td><td class="stat-count">${selectedCount}</td></tr>
           <tr><td class="stat-name">Rejected</td><td class="stat-count">${rejectedCount}</td></tr>
-          <tr><td class="stat-name">Past Drives</td><td class="stat-count">${pastCount}</td></tr>
         </tbody>
       </table>
     `;
   }
 
-  // 2. Beyond Drives View
+  // 2. Campus Drive View (Shows ALL Campus Drives including expired ones)
+  function renderCampusDrives() {
+    if (state.isLoading) {
+      elements.emptyCampus.style.display = 'none';
+      elements.tbodyCampus.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
+      return;
+    }
+
+    if (state.loadError) {
+      elements.emptyCampus.style.display = 'none';
+      elements.tbodyCampus.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
+      attachRetryListener();
+      return;
+    }
+
+    // Filter all Campus Drives (default category is Campus Drive)
+    const campusDrives = state.drives.filter(d => (d.driveType || 'Campus Drive') === 'Campus Drive');
+
+    if (campusDrives.length === 0) {
+      elements.tbodyCampus.innerHTML = '';
+      elements.emptyCampus.style.display = 'block';
+    } else {
+      elements.emptyCampus.style.display = 'none';
+      renderTableRows(elements.tbodyCampus, campusDrives);
+    }
+  }
+
+  // 3. Beyond Drives View
   function renderBeyondDrives() {
+    if (state.isLoading) {
+      elements.emptyBeyond.style.display = 'none';
+      elements.tbodyBeyond.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
+      return;
+    }
+
+    if (state.loadError) {
+      elements.emptyBeyond.style.display = 'none';
+      elements.tbodyBeyond.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
+      attachRetryListener();
+      return;
+    }
+
     const beyondDrives = state.drives.filter(d => (d.driveType || 'Campus Drive') === 'Beyond Drive');
 
     if (beyondDrives.length === 0) {
@@ -300,50 +414,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 3. Upcoming Drives View
-  function renderUpcomingDrives(today) {
-    const upcomingDrives = state.drives.filter(d => {
-      if (!d.driveDate) return true;
-      const driveDay = getStartOfDay(d.driveDate);
-      return driveDay && driveDay.getTime() >= today.getTime();
-    });
-
-    upcomingDrives.sort((a, b) => {
-      const dateA = a.driveDate ? new Date(a.driveDate).getTime() : 8640000000000000;
-      const dateB = b.driveDate ? new Date(b.driveDate).getTime() : 8640000000000000;
-      return dateA - dateB;
-    });
-
-    if (upcomingDrives.length === 0) {
-      elements.tbodyUpcoming.innerHTML = '';
-      elements.emptyUpcoming.style.display = 'block';
-    } else {
-      elements.emptyUpcoming.style.display = 'none';
-      renderTableRows(elements.tbodyUpcoming, upcomingDrives);
-    }
-  }
-
-  // 4. Past Drives View
-  function renderPastDrives(today) {
-    const pastDrives = state.drives.filter(d => {
-      if (!d.driveDate) return false;
-      const driveDay = getStartOfDay(d.driveDate);
-      return driveDay && driveDay.getTime() < today.getTime();
-    });
-
-    pastDrives.sort((a, b) => new Date(b.driveDate) - new Date(a.driveDate));
-
-    if (pastDrives.length === 0) {
-      elements.tbodyPast.innerHTML = '';
-      elements.emptyPast.style.display = 'block';
-    } else {
-      elements.emptyPast.style.display = 'none';
-      renderTableRows(elements.tbodyPast, pastDrives);
-    }
-  }
-
-  // 5. All Drives View
+  // 4. All Drives View
   function renderAllDrives() {
+    if (state.isLoading) {
+      elements.emptyAll.style.display = 'none';
+      elements.tbodyAll.innerHTML = `<tr><td colspan="9">${renderLoadingUI(state.retryCount)}</td></tr>`;
+      return;
+    }
+
+    if (state.loadError) {
+      elements.emptyAll.style.display = 'none';
+      elements.tbodyAll.innerHTML = `<tr><td colspan="9">${renderErrorUI(state.loadError)}</td></tr>`;
+      attachRetryListener();
+      return;
+    }
+
     let allDrives = [...state.drives];
 
     allDrives.sort((a, b) => {
@@ -372,8 +457,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 6. Resume Section View (ONLY Company Name & Resume Link)
+  // 5. Resume Section View (ONLY Company Name & Resume Link)
   function renderResumeView() {
+    if (state.isLoading) {
+      elements.emptyResume.style.display = 'none';
+      elements.tbodyResume.innerHTML = `<tr><td colspan="4">${renderLoadingUI(state.retryCount)}</td></tr>`;
+      return;
+    }
+
+    if (state.loadError) {
+      elements.emptyResume.style.display = 'none';
+      elements.tbodyResume.innerHTML = `<tr><td colspan="4">${renderErrorUI(state.loadError)}</td></tr>`;
+      attachRetryListener();
+      return;
+    }
+
     if (state.drives.length === 0) {
       elements.tbodyResume.innerHTML = '';
       elements.emptyResume.style.display = 'block';

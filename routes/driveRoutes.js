@@ -1,25 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const Drive = require('../models/Drive');
-const mongoose = require('mongoose');
 
-// In-memory fallback database if MongoDB Atlas is not connected yet
-let memoryDrives = [];
-
-const isMongoConnected = () => mongoose.connection.readyState === 1;
-
-// GET /api/drives - Get all placement drives
+// GET /api/drives - Get all placement drives sorted by newest creation date
 router.get('/', async (req, res) => {
   try {
-    if (isMongoConnected()) {
-      const drives = await Drive.find().sort({ createdAt: -1 });
-      return res.json(drives);
-    } else {
-      return res.json(memoryDrives);
-    }
+    // .lean() improves query execution speed by returning plain JS objects instead of full Mongoose Documents
+    const drives = await Drive.find().sort({ createdAt: -1 }).lean();
+    return res.json(drives);
   } catch (error) {
-    console.error('Error fetching drives:', error);
-    res.status(500).json({ error: 'Failed to fetch placement drives' });
+    console.error('Error fetching drives from MongoDB Atlas:', error);
+    res.status(500).json({ error: 'Failed to fetch placement drives from database' });
   }
 });
 
@@ -43,22 +34,11 @@ router.post('/', async (req, res) => {
       resumeLink: resumeLink ? resumeLink.trim() : ''
     };
 
-    if (isMongoConnected()) {
-      const newDrive = new Drive(driveData);
-      const savedDrive = await newDrive.save();
-      return res.status(201).json(savedDrive);
-    } else {
-      const newDrive = {
-        _id: 'mem_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
-        ...driveData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      memoryDrives.unshift(newDrive);
-      return res.status(201).json(newDrive);
-    }
+    const newDrive = new Drive(driveData);
+    const savedDrive = await newDrive.save();
+    return res.status(201).json(savedDrive);
   } catch (error) {
-    console.error('Error creating drive:', error);
+    console.error('Error creating drive in MongoDB Atlas:', error);
     res.status(500).json({ error: 'Failed to create placement drive' });
   }
 });
@@ -83,30 +63,18 @@ router.put('/:id', async (req, res) => {
     if (driveLink !== undefined) updateFields.driveLink = driveLink.trim();
     if (resumeLink !== undefined) updateFields.resumeLink = resumeLink.trim();
 
-    if (isMongoConnected()) {
-      const updatedDrive = await Drive.findByIdAndUpdate(
-        id,
-        { $set: updateFields },
-        { new: true, runValidators: true }
-      );
-      if (!updatedDrive) {
-        return res.status(404).json({ error: 'Placement drive not found' });
-      }
-      return res.json(updatedDrive);
-    } else {
-      const index = memoryDrives.findIndex(d => d._id === id);
-      if (index === -1) {
-        return res.status(404).json({ error: 'Placement drive not found' });
-      }
-      memoryDrives[index] = {
-        ...memoryDrives[index],
-        ...updateFields,
-        updatedAt: new Date()
-      };
-      return res.json(memoryDrives[index]);
+    const updatedDrive = await Drive.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedDrive) {
+      return res.status(404).json({ error: 'Placement drive not found' });
     }
+    return res.json(updatedDrive);
   } catch (error) {
-    console.error('Error updating drive:', error);
+    console.error('Error updating drive in MongoDB Atlas:', error);
     res.status(500).json({ error: 'Failed to update placement drive' });
   }
 });
@@ -116,22 +84,13 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (isMongoConnected()) {
-      const deletedDrive = await Drive.findByIdAndDelete(id);
-      if (!deletedDrive) {
-        return res.status(404).json({ error: 'Placement drive not found' });
-      }
-      return res.json({ message: 'Placement drive deleted successfully', id });
-    } else {
-      const index = memoryDrives.findIndex(d => d._id === id);
-      if (index === -1) {
-        return res.status(404).json({ error: 'Placement drive not found' });
-      }
-      memoryDrives.splice(index, 1);
-      return res.json({ message: 'Placement drive deleted successfully', id });
+    const deletedDrive = await Drive.findByIdAndDelete(id);
+    if (!deletedDrive) {
+      return res.status(404).json({ error: 'Placement drive not found' });
     }
+    return res.json({ message: 'Placement drive deleted successfully', id });
   } catch (error) {
-    console.error('Error deleting drive:', error);
+    console.error('Error deleting drive from MongoDB Atlas:', error);
     res.status(500).json({ error: 'Failed to delete placement drive' });
   }
 });

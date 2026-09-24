@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
+const { connectDB, ensureDbConnected } = require('./config/db');
 const driveRoutes = require('./routes/driveRoutes');
 
 const app = express();
@@ -17,15 +18,19 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database Status Endpoint
+// Database Status Health Check Endpoint (Bypasses connection middleware for diagnostic monitoring)
 app.get('/api/health', (req, res) => {
   const isConnected = mongoose.connection.readyState === 1;
+  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
   res.json({
     status: 'ok',
-    database: isConnected ? 'MongoDB Atlas Connected' : 'In-Memory Fallback Active (Configure MONGODB_URI in .env for Atlas)',
+    database: isConnected ? 'MongoDB Atlas Connected' : `MongoDB Atlas ${states[mongoose.connection.readyState] || 'Unknown'}`,
     dbState: mongoose.connection.readyState
   });
 });
+
+// Enforce MongoDB Atlas connection readiness on all database API endpoints
+app.use('/api', ensureDbConnected);
 
 // API Routes
 app.use('/api/drives', driveRoutes);
@@ -35,24 +40,17 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// MongoDB Atlas Connection
-const mongoURI = process.env.MONGODB_URI;
-
-if (mongoURI && !mongoURI.includes('your_username')) {
-  mongoose.connect(mongoURI)
+// Initiate MongoDB Atlas Connection and Start Express Server
+connectDB()
   .then(() => {
-    console.log(' Successfully connected to MongoDB Atlas');
+    app.listen(PORT, () => {
+      console.log(`🚀 Placement Drive Tracker server running at http://localhost:${PORT}`);
+    });
   })
   .catch((err) => {
-    console.error(' MongoDB Atlas Connection Warning:', err.message);
-    console.log(' Server will operate using fallback database until MongoDB Atlas connection is established.');
+    console.error('⚠️ Initial MongoDB Atlas connection pending/warning:', err.message);
+    // Start Express server so health endpoint and client requests function; ensureDbConnected will retry on incoming API requests
+    app.listen(PORT, () => {
+      console.log(`🚀 Placement Drive Tracker server running at http://localhost:${PORT} (Database connection initializing)`);
+    });
   });
-} else {
-  console.log('ℹ MONGODB_URI not configured yet. Server operating with fallback database.');
-  console.log('  To connect to MongoDB Atlas, update your connection string in .env file.');
-}
-
-// Start Express Server
-app.listen(PORT, () => {
-  console.log(`🚀 Placement Drive Tracker server running at http://localhost:${PORT}`);
-});
